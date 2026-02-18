@@ -164,7 +164,7 @@ def extract_burned_subtitle_ocr(video_path: str, output_srt: str) -> bool:
         return False
 
 
-def extract_with_whisper(video_path: str, output_srt: str, model: str = "large") -> bool:
+def extract_with_whisper(video_path: str, output_srt: str, model: str = "base") -> bool:
     """
     使用 Whisper 进行语音转录
     """
