@@ -1,0 +1,75 @@
+[33mWARN[0m[2026-02-08 20:08:15] not enable search                            
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool 115 Open success: ok 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool 123 Open success: ok 
+[33mWARN[0m[2026-02-08 20:08:15] init offline download tool qBittorrent failed: Post "http://localhost:8080/api/v2/auth/login": dial tcp 127.0.0.1:8080: connect: connection refused 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool Thunder success: ok 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool ThunderX success: ok 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool 115 Cloud success: ok 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool 123Pan success: ok 
+[33mWARN[0m[2026-02-08 20:08:15] init offline download tool aria2 failed: failed get aria2 version: Post "http://localhost:6800/jsonrpc": dial tcp 127.0.0.1:6800: connect: connection refused 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool SimpleHttp success: ok 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool PikPak success: ok 
+[36mINFO[0m[2026-02-08 20:08:15] init offline download tool ThunderBrowser success: ok 
+[33mWARN[0m[2026-02-08 20:08:15] init offline download tool Transmission failed: failed get transmission version: can't get session values: 'session-get' rpc method failed: failed to execute HTTP request: Post "http://localhost:9091/transmission/rpc": dial tcp 127.0.0.1:9091: connect: connection refused 
+[36mINFO[0m[2026-02-08 20:08:15] start HTTP server @ 0.0.0.0:5244             
+[GIN] 2026/02/08 - 20:08:53 | 200 |     249.334µs |       127.0.0.1 | GET      "/"
+[GIN] 2026/02/08 - 20:08:53 | 200 |     533.083µs |       127.0.0.1 | GET      "/assets/index-DYLAoZjS.css"
+[GIN] 2026/02/08 - 20:08:53 | 200 |    2.161292ms |       127.0.0.1 | GET      "/assets/index-DhYf9r2H.js"
+[GIN] 2026/02/08 - 20:08:53 | 200 |     184.375µs |       127.0.0.1 | GET      "/assets/entry-JpDlLTv0.js"
+[GIN] 2026/02/08 - 20:08:53 | 200 |     110.917µs |       127.0.0.1 | GET      "/api/public/archive_extensions"
+[GIN] 2026/02/08 - 20:08:53 | 200 |     599.166µs |       127.0.0.1 | GET      "/api/public/settings"
+[GIN] 2026/02/08 - 20:08:53 | 200 |     459.167µs |       127.0.0.1 | GET      "/api/me"
+[GIN] 2026/02/08 - 20:08:53 | 200 |      94.875µs |       127.0.0.1 | GET      "/assets/index-Dud7PaMV.js"
+[GIN] 2026/02/08 - 20:08:53 | 200 |      34.208µs |       127.0.0.1 | GET      "/assets/webauthn-json.browser-ponyfill-CVZeZdny.js"
+[GIN] 2026/02/08 - 20:08:53 | 200 |      13.917µs |       127.0.0.1 | GET      "/assets/useTitle-Ba6i3yix.js"
+[GIN] 2026/02/08 - 20:08:53 | 200 |     128.375µs |       127.0.0.1 | GET      "/manifest.json"
+[GIN] 2026/02/08 - 20:09:41 | 200 |     850.417µs |       127.0.0.1 | POST     "/api/auth/login/hash"
+[GIN] 2026/02/08 - 20:09:41 | 200 |     238.166µs |       127.0.0.1 | GET      "/api/me"
+[GIN] 2026/02/08 - 20:09:41 | 200 |     358.375µs |       127.0.0.1 | GET      "/assets/Layout-DqZvA6ms.js"
+[GIN] 2026/02/08 - 20:09:41 | 200 |     465.791µs |       127.0.0.1 | GET      "/assets/index-DW8aQqqi.js"
+[GIN] 2026/02/08 - 20:09:41 | 200 |     241.292µs |       127.0.0.1 | GET      "/assets/FolderTree-DD3x9gUh.js"
+[GIN] 2026/02/08 - 20:09:41 | 200 |          25µs |       127.0.0.1 | GET      "/assets/index-Bc50e2d2.js"
+[GIN] 2026/02/08 - 20:09:41 | 200 |     1.58975ms |       127.0.0.1 | GET      "/assets/ModalInput-BLeOXZJv.js"
+[GIN] 2026/02/08 - 20:09:41 | 200 |      46.083µs |       127.0.0.1 | GET      "/assets/share-B8s05BlZ.js"
+[GIN] 2026/02/08 - 20:09:41 | 200 |     185.959µs |       127.0.0.1 | GET      "/assets/index-8Z6xvvVH.js"
+[GIN] 2026/02/08 - 20:09:41 | 200 |         983µs |       127.0.0.1 | GET      "/api/public/offline_download_tools"
+[31mERRO[0m[2026-02-08 20:09:41] failed list /: storage not found; please add a storage first
+failed get storage 
+[GIN] 2026/02/08 - 20:09:41 | 200 |    1.813417ms |       127.0.0.1 | POST     "/api/fs/get"
+[31mERRO[0m[2026-02-08 20:09:41] failed list /: storage not found; please add a storage first
+failed get storage 
+[GIN] 2026/02/08 - 20:09:41 | 200 |       474.5µs |       127.0.0.1 | POST     "/api/fs/list"
+[GIN] 2026/02/08 - 20:09:41 | 200 |   11.891625ms |       127.0.0.1 | GET      "/static/mermaid/mermaid.min.js"
+[GIN] 2026/02/08 - 20:09:55 | 200 |     113.542µs |       127.0.0.1 | GET      "/api/me"
+[GIN] 2026/02/08 - 20:09:55 | 200 |      78.334µs |       127.0.0.1 | GET      "/assets/index-piGlPXiy.js"
+[GIN] 2026/02/08 - 20:09:55 | 200 |      58.625µs |       127.0.0.1 | GET      "/assets/index-DXjGKqRp.js"
+[GIN] 2026/02/08 - 20:09:55 | 200 |      16.334µs |       127.0.0.1 | GET      "/assets/storage-B8Wc9tdG.js"
+[GIN] 2026/02/08 - 20:09:55 | 200 |      79.125µs |       127.0.0.1 | GET      "/assets/Storages-DofPZSMf.js"
+[GIN] 2026/02/08 - 20:09:55 | 200 |      13.625µs |       127.0.0.1 | GET      "/assets/DeletePopover-B-WdHUit.js"
+[GIN] 2026/02/08 - 20:09:55 | 200 |      124.25µs |       127.0.0.1 | GET      "/api/admin/driver/names"
+[GIN] 2026/02/08 - 20:09:55 | 200 |     331.417µs |       127.0.0.1 | GET      "/api/admin/storage/list"
+[GIN] 2026/02/08 - 20:09:58 | 200 |      22.792µs |       127.0.0.1 | GET      "/assets/item_type-CyD6qwPS.js"
+[GIN] 2026/02/08 - 20:09:58 | 200 |        18.5µs |       127.0.0.1 | GET      "/assets/ResponsiveGrid-WI_h5W3v.js"
+[GIN] 2026/02/08 - 20:09:58 | 200 |     123.625µs |       127.0.0.1 | GET      "/assets/AddOrEdit-ChyL_DgV.js"
+[GIN] 2026/02/08 - 20:09:58 | 200 |     1.04975ms |       127.0.0.1 | GET      "/api/admin/driver/list"
+[GIN] 2026/02/08 - 20:16:12 | 200 |   98.207083ms |       127.0.0.1 | POST     "/api/admin/storage/create"
+[GIN] 2026/02/08 - 20:16:12 | 200 |     335.167µs |       127.0.0.1 | GET      "/api/admin/driver/names"
+[GIN] 2026/02/08 - 20:16:12 | 200 |     956.958µs |       127.0.0.1 | GET      "/api/admin/storage/list"
+[GIN] 2026/02/08 - 20:17:13 | 200 |     219.375µs |       127.0.0.1 | GET      "/assets/PublicKeys-V_MnA-Pk.js"
+[GIN] 2026/02/08 - 20:17:13 | 200 |       181.5µs |       127.0.0.1 | GET      "/assets/Profile-DcFGTgob.js"
+[GIN] 2026/02/08 - 20:17:24 | 200 |    1.462041ms |       127.0.0.1 | POST     "/api/me/update"
+[GIN] 2026/02/08 - 20:17:31 | 200 |     524.334µs |       127.0.0.1 | POST     "/api/auth/login/hash"
+[GIN] 2026/02/08 - 20:17:31 | 200 |      85.125µs |       127.0.0.1 | GET      "/api/me"
+[GIN] 2026/02/08 - 20:17:37 | 200 |     935.708µs |       127.0.0.1 | POST     "/api/me/update"
+[GIN] 2026/02/08 - 20:17:43 | 200 |     296.666µs |       127.0.0.1 | POST     "/api/auth/login/hash"
+[GIN] 2026/02/08 - 20:17:43 | 200 |      81.084µs |       127.0.0.1 | GET      "/api/me"
+[GIN] 2026/02/08 - 20:17:49 | 200 |     219.958µs |       127.0.0.1 | GET      "/assets/backup-restore-Bohf79yf.js"
+[GIN] 2026/02/08 - 20:18:04 | 200 |     210.958µs |       127.0.0.1 | GET      "/api/admin/driver/names"
+[GIN] 2026/02/08 - 20:18:04 | 200 |     536.166µs |       127.0.0.1 | GET      "/api/admin/storage/list"
+[GIN] 2026/02/08 - 20:18:07 | 200 |       32.25µs |       127.0.0.1 | GET      "/assets/Wether-LjIezK3B.js"
+[GIN] 2026/02/08 - 20:18:07 | 200 |      68.917µs |       127.0.0.1 | GET      "/assets/Metas-DYBMxirU.js"
+[GIN] 2026/02/08 - 20:18:07 | 200 |         615µs |       127.0.0.1 | GET      "/api/admin/meta/list"
+[GIN] 2026/02/08 - 20:18:08 | 200 |      120.25µs |       127.0.0.1 | GET      "/assets/Shares-CV434-bF.js"
+[GIN] 2026/02/08 - 20:18:08 | 200 |     398.666µs |       127.0.0.1 | GET      "/api/share/list"
+[GIN] 2026/02/08 - 20:18:09 | 200 |     127.291µs |       127.0.0.1 | GET      "/api/admin/driver/names"
+[GIN] 2026/02/08 - 20:18:09 | 200 |     380.667µs |       127.0.0.1 | GET      "/api/admin/storage/list"
