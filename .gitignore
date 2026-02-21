@@ -43,3 +43,9 @@ workspace_data/
 # Temporary
 *.tmp
 *.temp
+
+# Sensitive runtime artifacts
+cookies.txt
+data/*.db
+data/*.db-shm
+data/*.db-wal

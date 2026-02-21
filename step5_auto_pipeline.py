@@ -48,24 +48,30 @@ def run_script(script_name):
     log_message("-" * 50)
     return process.returncode
 
+def extract_failed_urls_from_lines(lines, lookback=10):
+    """从日志行中提取下载失败对应的 URL。"""
+    failed_list = []
+    for i, line in enumerate(lines):
+        if "❌ 下载失败" in line or "❌ 本次抓取失败" in line:
+            start_idx = max(0, i - lookback)
+            for j in range(i, start_idx - 1, -1):
+                if "🔗" in lines[j]:
+                    url = lines[j].split("🔗")[-1].strip()
+                    if url and url not in failed_list:
+                        failed_list.append(url)
+                    break
+    return failed_list
+
 def check_failed_downloads():
     """检查日志，提取下载失败的 URL"""
     log_message("🔍 正在扫描下载失败的任务...")
-    failed_list = []
-    
-    # 逻辑：从 pipeline_debug.log 中寻找 "❌ 下载失败" 之前的 "🔗" 链接
+
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE, "r", encoding="utf-8") as f:
             lines = f.readlines()
-            for i, line in enumerate(lines):
-                if "❌ 下载失败" in line or "❌ 本次抓取失败" in line:
-                    # 向上找最近的链接
-                    for j in range(i, i-10, -1):
-                        if "🔗" in lines[j]:
-                            url = lines[j].split("🔗")[-1].strip()
-                            if url not in failed_list:
-                                failed_list.append(url)
-                            break
+        failed_list = extract_failed_urls_from_lines(lines)
+    else:
+        failed_list = []
     
     if failed_list:
         with open(FAILED_URLS_FILE, "w", encoding="utf-8") as f:

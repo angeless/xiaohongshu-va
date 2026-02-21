@@ -45,7 +45,7 @@ def login_and_save_state():
         
         context.close()
         print(f"✅ 成功！登录状态已保存到: {USER_DATA_DIR}")
-        print("   现在你可以运行 step1_crawler.py 了！")
+        print("   现在你可以运行 step1_scraper.py 或 step3_batch.py 了！")
 
 if __name__ == "__main__":
     login_and_save_state()

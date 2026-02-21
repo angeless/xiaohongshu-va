@@ -12,6 +12,23 @@ from pathlib import Path
 import json
 
 
+def format_ffmpeg_seek(seconds: int) -> str:
+    """格式化 ffmpeg seek 时间（HH:MM:SS）"""
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+
+def format_timestamp(seconds: float) -> str:
+    """格式化时间戳为 SRT 格式"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
 def check_embedded_subtitle(video_path: str) -> tuple[bool, str]:
     """
     检查视频是否包含内嵌字幕流
@@ -124,7 +141,7 @@ def extract_burned_subtitle_ocr(video_path: str, output_srt: str) -> bool:
         # 每隔1秒截取一帧进行 OCR
         subtitles = []
         for t in range(0, int(duration), 1):
-            frame_path = capture_frame(video_path, f"00:00:{t:02d}")
+            frame_path = capture_frame(video_path, format_ffmpeg_seek(t))
             if not frame_path:
                 continue
             
@@ -142,8 +159,8 @@ def extract_burned_subtitle_ocr(video_path: str, output_srt: str) -> bool:
                 if texts:
                     subtitles.append({
                         'index': len(subtitles) + 1,
-                        'start': f"00:00:{t:02d},000",
-                        'end': f"00:00:{t+1:02d},000",
+                        'start': format_timestamp(float(t)),
+                        'end': format_timestamp(float(t + 1)),
                         'text': ' '.join(texts)
                     })
             
@@ -191,13 +208,6 @@ def extract_with_whisper(video_path: str, output_srt: str, model: str = "base") 
         )
         
         # 生成 SRT
-        def format_timestamp(seconds: float) -> str:
-            hours = int(seconds // 3600)
-            minutes = int((seconds % 3600) // 60)
-            secs = int(seconds % 60)
-            millis = int((seconds % 1) * 1000)
-            return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
-        
         with open(output_srt, 'w', encoding='utf-8') as f:
             for i, segment in enumerate(result["segments"], 1):
                 start = format_timestamp(segment["start"])
