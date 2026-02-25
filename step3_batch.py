@@ -5,12 +5,17 @@ import os
 import json
 import step1_scraper as step1
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def main():
+    os.chdir(BASE_DIR)
     print("🚀 启动 [Step 1: 批量下载] 模式...")
     print("👉 本步骤只负责将视频和元数据保存到本地，不进行分析。")
+    print(f"📁 工作目录: {BASE_DIR}")
+    print(f"📄 读取链接文件: {os.path.join(BASE_DIR, 'urls.txt')}")
     print("="*60)
     
-    links_file = "urls.txt"
+    links_file = os.path.join(BASE_DIR, "urls.txt")
     links = []
     
     # 读取链接
@@ -36,15 +41,27 @@ def main():
         print(f"🔗 {url}")
         
         try:
-            # 调用爬虫
-            json_path = step1.run_scraper(url)
-            
-            if json_path:
-                print(f"✅ 下载成功: {os.path.basename(json_path)}")
-                success_count += 1
+            if step1.is_profile_url(url):
+                max_items = int(os.getenv("PROFILE_MAX_ITEMS", "10"))
+                print(f"👤 检测到达人主页链接，切换真实点击模式（最多 {max_items} 条）")
+                json_list = step1.run_profile_scraper(url, max_items=max_items)
+                if json_list:
+                    print(f"✅ 达人主页采集成功: {len(json_list)} 条")
+                    success_count += len(json_list)
+                else:
+                    print(f"❌ 达人主页采集失败")
             else:
-                print(f"❌ 下载失败")
+                # 调用单条爬虫
+                json_path = step1.run_scraper(url)
+                if json_path:
+                    print(f"✅ 下载成功: {os.path.basename(json_path)}")
+                    success_count += 1
+                else:
+                    print(f"❌ 下载失败")
                 
+        except KeyboardInterrupt:
+            print("\n⚠️ 用户中断任务，停止批处理。")
+            break
         except Exception as e:
             print(f"❌ 异常: {e}")
             
@@ -60,4 +77,7 @@ def main():
     print("="*60)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n⚠️ 用户中断执行。")
