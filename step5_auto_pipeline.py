@@ -4,10 +4,12 @@ import sys
 import time
 from datetime import datetime
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # 配置路径
-LOG_FILE = "pipeline_debug.log"
-FAILED_URLS_FILE = "failed_urls.txt"
-URLS_FILE = "urls.txt"
+LOG_FILE = os.path.join(BASE_DIR, "pipeline_debug.log")
+FAILED_URLS_FILE = os.path.join(BASE_DIR, "failed_urls.txt")
+URLS_FILE = os.path.join(BASE_DIR, "urls.txt")
 
 def log_message(message, echo=True):
     """同时打印到屏幕并保存到日志文件"""
@@ -82,6 +84,8 @@ def check_failed_downloads():
         log_message("✨ 本次运行所有下载任务均已成功！")
 
 def main():
+    os.chdir(BASE_DIR)
+
     # 初始化日志
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(f"\n\n{'='*25} 新流水线启动 {'='*25}\n")
@@ -95,14 +99,14 @@ def main():
         return
 
     # 1. 批量下载
-    run_script("step3_batch.py")
+    run_script(os.path.join(BASE_DIR, "step3_batch.py"))
     
     # 2. 批量分析 (Claude)
     # 因为 Step 2 逻辑里有“跳过已存在报告”，所以即便是重跑也会很智能
-    run_script("step2_analyzer.py")
+    run_script(os.path.join(BASE_DIR, "step2_analyzer.py"))
     
     # 3. 批量上传 (Notion)
-    run_script("step4_uploader.py")
+    run_script(os.path.join(BASE_DIR, "step4_uploader.py"))
     
     # 后置处理：检查失败项
     check_failed_downloads()

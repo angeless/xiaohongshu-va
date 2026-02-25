@@ -140,6 +140,60 @@ video-copy-analyzer/
 - **选项 B**：每次手动指定
 - **选项 C**：设置一个固定的自定义目录
 
+### 分析模型可选项（Step 2）
+
+`step2_analyzer.py` 现支持多提供商切换（Claude/OpenAI/Kimi/Qwen/MiniMax），通过 `.env` 配置：
+
+```bash
+# 选择分析提供商:
+# anthropic / openai / kimi / qwen / minimax / auto
+# auto = 按顺序自动尝试所有 provider
+ANALYSIS_PROVIDER=anthropic
+
+# 可选：手动指定降级顺序（不填则默认按其余 provider 自动补齐）
+ANALYSIS_FALLBACKS=openai,kimi,qwen,minimax,anthropic
+
+# 可选：模型都失败时是否允许本地兜底
+# 1=允许(报告会偏简单) / 0=禁止(直接报错，避免低质量报告)
+ALLOW_LOCAL_FALLBACK=0
+
+# 各提供商模型（按需配置）
+ANTHROPIC_MODEL=claude-3-5-sonnet-latest
+OPENAI_MODEL=gpt-4o-mini
+KIMI_MODEL=moonshot-v1-8k
+QWEN_MODEL=qwen-plus
+MINIMAX_MODEL=MiniMax-Text-01
+
+# 各提供商 API Key
+ANTHROPIC_API_KEY=...
+OPENAI_API_KEY=...
+KIMI_API_KEY=...
+QWEN_API_KEY=...
+MINIMAX_API_KEY=...
+
+# 各提供商 Base URL（一般保留默认）
+OPENAI_BASE_URL=https://api.openai.com/v1
+KIMI_BASE_URL=https://api.moonshot.cn/v1
+QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+MINIMAX_BASE_URL=https://api.minimax.chat/v1
+```
+
+说明：
+- 不同提供商使用各自 API Key：`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `KIMI_API_KEY` / `QWEN_API_KEY` / `MINIMAX_API_KEY`
+- 分析日志会写入 `workspace_data/analysis_debug_<timestamp>.log`
+
+### 达人主页真实点击模式（Step 1）
+
+`step3_batch.py` 会自动识别达人主页链接（`/user/profile/`），并执行：
+
+`点击卡片 -> 采集当前笔记 -> 返回主页 -> 下一条`
+
+可通过环境变量控制单个达人最多采集条数：
+
+```bash
+PROFILE_MAX_ITEMS=10
+```
+
 ## 📄 输出文件
 
 分析完成后，你将获得：
