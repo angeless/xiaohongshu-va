@@ -1,0 +1,42 @@
+# ============================================
+# Video Copy Analyzer - Python Dependencies
+# ============================================
+# Install:  pip install -r requirements.txt
+# Minimal:  pip install -r requirements.txt --only-binary :all:
+# ============================================
+
+# --- Core (required) ---
+python-dotenv>=1.0.0
+requests>=2.28.0
+json-repair>=0.28.0
+pysrt>=1.1.2
+numpy>=1.24.0
+
+# --- Browser Automation (required for Step 1 scraping) ---
+playwright>=1.40.0
+
+# --- AI Analysis Providers (at least one required for Step 2) ---
+anthropic>=0.39.0
+
+# --- Notion Integration (optional, for Step 4 upload) ---
+notion-client>=2.0.0
+
+# --- Image Processing (optional, for cover/frame analysis) ---
+opencv-python-headless>=4.8.0
+
+# --- Video Download (install via pip or system package manager) ---
+yt-dlp>=2024.1.0
+
+# ============================================
+# Optional Subtitle Extraction Dependencies
+# Install based on your needs:
+# ============================================
+
+# FunASR - Recommended for Chinese content (lightweight, ~100MB)
+# pip install funasr modelscope
+
+# RapidOCR - For burned subtitle detection (ONNX, no GPU needed)
+# pip install rapidocr-onnxruntime
+
+# Whisper - Alternative for English/multilingual (larger, ~1.5GB model)
+# pip install openai-whisper

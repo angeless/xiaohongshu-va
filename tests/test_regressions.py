@@ -71,16 +71,16 @@ class PipelineSmokeTest(unittest.TestCase):
         mock_run_script,
         mock_check_failed,
     ):
-        step5_auto_pipeline.main()
+        step5_auto_pipeline.main(cli_args=[])
 
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        mock_run_script.assert_has_calls(
-            [
-                call(os.path.join(base, "step3_batch.py")),
-                call(os.path.join(base, "step2_analyzer.py")),
-                call(os.path.join(base, "step4_uploader.py")),
-            ]
-        )
+        # run_script now accepts extra_args kwarg
+        script_names = [c.args[0] for c in mock_run_script.call_args_list]
+        self.assertEqual(script_names, [
+            os.path.join(base, "step3_batch.py"),
+            os.path.join(base, "step2_analyzer.py"),
+            os.path.join(base, "step4_uploader.py"),
+        ])
         self.assertEqual(mock_run_script.call_count, 3)
         mock_check_failed.assert_called_once()
 
@@ -91,7 +91,7 @@ class PipelineSmokeTest(unittest.TestCase):
     def test_main_exits_early_when_urls_missing(
         self, _mock_open, _mock_exists, _mock_log, mock_run_script
     ):
-        step5_auto_pipeline.main()
+        step5_auto_pipeline.main(cli_args=[])
         mock_run_script.assert_not_called()
 
 

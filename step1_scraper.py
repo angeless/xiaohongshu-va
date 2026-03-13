@@ -4,6 +4,7 @@ import json
 import time
 import re
 import random
+import argparse
 import subprocess
 import requests
 from requests.adapters import HTTPAdapter
@@ -11,6 +12,8 @@ from urllib3.util.retry import Retry
 from urllib.parse import urljoin
 from datetime import datetime
 from playwright.sync_api import sync_playwright
+
+from utils import validate_url
 
 # 确保工作目录存在
 WORK_DIR = "workspace_data"
@@ -86,6 +89,9 @@ def download_video(url, filename):
 
 def download_video_with_ytdlp(note_url, timestamp):
     """兜底下载：直接使用 yt-dlp 下载笔记视频。"""
+    if not validate_url(note_url):
+        print(f"❌ URL 校验失败（仅允许 http/https）: {note_url}")
+        return None
     template = os.path.join(WORK_DIR, f"video_{timestamp}.%(ext)s")
     cmd = [
         "yt-dlp",
@@ -654,3 +660,32 @@ def run_profile_scraper(profile_url, max_items=10):
                     context.close()
                 except Exception:
                     pass
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Step 1: 视频下载与元数据采集（小红书/B站/YouTube/抖音）"
+    )
+    parser.add_argument(
+        "--url", "-u", type=str, default=None,
+        help="要下载的视频 URL（单条）"
+    )
+    parser.add_argument(
+        "--max-items", type=int, default=int(os.getenv("PROFILE_MAX_ITEMS", "10")),
+        help="达人主页模式下最大采集条数（默认: 10）"
+    )
+    args = parser.parse_args()
+
+    if not args.url:
+        print("用法: python step1_scraper.py --url <视频URL>")
+        print("      python step1_scraper.py --url <达人主页URL> --max-items 20")
+        sys.exit(1)
+
+    if not validate_url(args.url):
+        print(f"❌ 无效 URL（仅支持 http/https）: {args.url}")
+        sys.exit(1)
+
+    if is_profile_url(args.url):
+        run_profile_scraper(args.url, max_items=args.max_items)
+    else:
+        run_scraper(args.url)

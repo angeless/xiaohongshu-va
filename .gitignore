@@ -49,3 +49,16 @@ cookies.txt
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/log/
+
+# Debug logs
+pipeline_debug.log
+*.log
+
+# Temp frames & test artifacts
+temp_frames/
+test_video.info.json
+urls.txt
+
+# Browser memory (contains login sessions)
+browser_memory/

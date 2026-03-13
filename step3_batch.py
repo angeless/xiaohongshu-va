@@ -3,43 +3,53 @@ import time
 import random
 import os
 import json
+import argparse
 import step1_scraper as step1
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Step 3: 批量下载视频与元数据"
+    )
+    parser.add_argument(
+        "--urls-file", type=str,
+        default=os.path.join(BASE_DIR, "urls.txt"),
+        help="链接文件路径（默认: urls.txt）"
+    )
+    args = parser.parse_args()
+
     os.chdir(BASE_DIR)
-    print("🚀 启动 [Step 1: 批量下载] 模式...")
+    print("🚀 启动 [Step 3: 批量下载] 模式...")
     print("👉 本步骤只负责将视频和元数据保存到本地，不进行分析。")
     print(f"📁 工作目录: {BASE_DIR}")
-    print(f"📄 读取链接文件: {os.path.join(BASE_DIR, 'urls.txt')}")
+    print(f"📄 读取链接文件: {args.urls_file}")
     print("="*60)
-    
-    links_file = os.path.join(BASE_DIR, "urls.txt")
+
     links = []
-    
+
     # 读取链接
-    if os.path.exists(links_file):
-        with open(links_file, "r", encoding="utf-8") as f:
-            links = [line.strip() for line in f if line.strip()]
-            
+    if os.path.exists(args.urls_file):
+        with open(args.urls_file, "r", encoding="utf-8") as f:
+            links = [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
+
     if not links:
-        print(f"⚠️ 未找到 {links_file} 或文件为空。")
+        print(f"⚠️ 未找到 {args.urls_file} 或文件为空。")
         print("👉 请直接粘贴链接 (输入 'run' 开始):")
         while True:
             line = input("> ").strip()
             if line == 'run': break
             if line: links.append(line)
-            
+
     print(f"📋 任务队列: {len(links)} 个")
     print("="*60)
-    
+
     success_count = 0
-    
+
     for i, url in enumerate(links):
         print(f"\n🎬 [任务 {i+1}/{len(links)}] 下载中...")
         print(f"🔗 {url}")
-        
+
         try:
             if step1.is_profile_url(url):
                 max_items = int(os.getenv("PROFILE_MAX_ITEMS", "10"))
@@ -58,13 +68,13 @@ def main():
                     success_count += 1
                 else:
                     print(f"❌ 下载失败")
-                
+
         except KeyboardInterrupt:
             print("\n⚠️ 用户中断任务，停止批处理。")
             break
         except Exception as e:
             print(f"❌ 异常: {e}")
-            
+
         # 随机休息，防封号
         if i < len(links) - 1:
             t = random.randint(5, 12)

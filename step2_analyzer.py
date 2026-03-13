@@ -1,8 +1,8 @@
 import os
 import sys
 import json
+import argparse
 import warnings
-import whisper
 import cv2
 import requests
 import base64
@@ -12,7 +12,11 @@ import time
 import traceback
 import numpy as np
 from datetime import datetime
-from dotenv import load_dotenv
+
+from utils import (
+    PROJECT_ROOT, WORK_DIR, env_clean, parse_number, make_logger,
+    check_env_security,
+)
 
 try:
     import anthropic
@@ -22,33 +26,14 @@ except ImportError:
 # 忽略警告
 warnings.filterwarnings("ignore")
 
-# 加载环境（固定使用脚本所在目录，避免从其他目录启动时读不到 .env）
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(dotenv_path=os.path.join(PROJECT_ROOT, ".env"))
 
-
-def env_clean(name, default=None):
-    """读取并清洗 .env 值，容忍尾部注释和包裹引号。"""
-    value = os.getenv(name, default)
-    if value is None:
-        return None
-    value = str(value).strip()
-    # 允许 value 后追加注释：KEY=value  # comment
-    value = re.sub(r"\s+#.*$", "", value).strip()
-    # 容忍单边或双边引号污染
-    value = value.strip().strip('"').strip("'").strip()
-    return value
-
-# 🔥🔥🔥 引入救星库 (核心修复) 🔥🔥🔥
+# 🔥 引入 JSON 修复库
 try:
     from json_repair import repair_json
 except ImportError:
     print("❌ 严重错误：缺少必要库！请立即运行终端命令：")
     print("👉 pip install json_repair")
     sys.exit(1)
-
-WORK_DIR = os.path.join(PROJECT_ROOT, "workspace_data")
-os.makedirs(WORK_DIR, exist_ok=True)
 
 # Anthropic 客户端按需初始化，避免非 Claude 模式下硬依赖
 client_claude = None
@@ -64,38 +49,65 @@ if anthropic and anthropic_api_key:
         client_claude = None
 
 # ==========================================
-# 👇 【Angel 的灵魂 - 100% 满血未删减版】
+# 👇 Persona 动态加载（支持自定义）
 # ==========================================
-MY_PERSONA = """
-【我是谁】：Angel，前游戏行业打工人，现役环球流浪者（目前进度：23/197）。无足鸟文旅创始人。
-【核心形象】：粉色头发，外表不好惹，内心极度真诚的 Solo Traveler。
-【拍摄装备】：Sony A7C2, DJI Mini 3 Pro, Insta360 Ace Pro 2。主打自然光。
+_DEFAULT_PERSONA = {
+    “name”: “Angel”,
+    “identity”: “前游戏行业打工人，现役环球流浪者（目前进度：23/197）。无足鸟文旅创始人。”,
+    “image”: “粉色头发，外表不好惹，内心极度真诚的 Solo Traveler。”,
+    “equipment”: “Sony A7C2, DJI Mini 3 Pro, Insta360 Ace Pro 2。主打自然光。”,
+    “analysis_perspective”: [
+        “我是”流量猎人”。我不看热闹，我看门道。”,
+        “封面是门面（决定点击），内容是陷阱（决定停留），变现是目的（决定价值）。”,
+    ],
+    “thinking_model”: [
+        “把热评当用户访谈：情绪共振>信息获取。”,
+        “把平台行为当数据：点赞=认同，收藏=有用，转发=社交货币。”,
+        “只要大概率不能复刻的（靠脸/靠运气/靠不可抗力），一律判为 C 级，不浪费时间。”,
+    ],
+    “language”: “简体中文”,
+}
+
+
+def load_persona():
+    “””Load persona from persona.json (or PERSONA_FILE env var). Falls back to built-in default.”””
+    persona_path = env_clean(“PERSONA_FILE”, os.path.join(PROJECT_ROOT, “persona.json”))
+    if persona_path and os.path.exists(persona_path):
+        try:
+            with open(persona_path, “r”, encoding=”utf-8”) as f:
+                persona = json.load(f)
+            print(f”✅ 已加载 Persona 配置: {persona.get('name', 'Unknown')} ({persona_path})”)
+            return persona
+        except Exception as e:
+            print(f”⚠️ Persona 配置加载失败 ({e})，使用内置默认值。”)
+    return _DEFAULT_PERSONA
+
+
+def build_persona_text(persona):
+    “””Convert persona dict to the prompt text block.”””
+    name = persona.get(“name”, “Analyst”)
+    perspectives = “\n”.join(persona.get(“analysis_perspective”, []))
+    thinking = “\n”.join(f”{i+1}. {t}” for i, t in enumerate(persona.get(“thinking_model”, [])))
+    lang = persona.get(“language”, “简体中文”)
+    return f”””
+【我是谁】：{name}，{persona.get('identity', '')}
+【核心形象】：{persona.get('image', '')}
+【拍摄装备】：{persona.get('equipment', '')}
 【分析视角】：
-我是“流量猎人”。我不看热闹，我看门道。
-封面是门面（决定点击），内容是陷阱（决定停留），变现是目的（决定价值）。
+{perspectives}
 【思维模型】：
-1. 把热评当用户访谈：情绪共振>信息获取。
-2. 把平台行为当数据：点赞=认同，收藏=有用，转发=社交货币。
-3. 只要大概率不能复刻的（靠脸/靠运气/靠不可抗力），一律判为 C 级，不浪费时间。
-【语言要求】：所有输出必须使用【简体中文】。
-"""
+{thinking}
+【语言要求】：所有输出必须使用【{lang}】。
+“””
+
+
+PERSONA = load_persona()
+PERSONA_NAME = PERSONA.get(“name”, “Analyst”)
+MY_PERSONA = build_persona_text(PERSONA)
 
 # ==========================================
 # 👇 工具函数
 # ==========================================
-
-def parse_number(text):
-    if not text: return 0
-    text = str(text).strip().lower()
-    try:
-        text = text.replace('+', '')
-        if '万' in text: return int(float(text.replace('万', '')) * 10000)
-        elif 'w' in text: return int(float(text.replace('w', '')) * 10000)
-        elif 'k' in text: return int(float(text.replace('k', '')) * 1000)
-        else:
-            clean_text = re.sub(r'[^\d.]', '', text)
-            return int(float(clean_text)) if clean_text else 0
-    except: return 0
 
 
 def generate_local_fallback_analysis(meta, transcript, reason):
@@ -153,19 +165,6 @@ def generate_local_fallback_analysis(meta, transcript, reason):
         "_fallback_reason": reason_short,
         "_fallback_preview": preview,
     }
-
-
-def make_logger(log_file):
-    def _log(message):
-        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{ts}] {message}"
-        print(line)
-        try:
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(line + "\n")
-        except Exception:
-            pass
-    return _log
 
 
 def get_provider_configs():
@@ -469,12 +468,11 @@ def analyze_content(meta, transcript, cover_base64=None, log=None):
 
     messages_content = []
     
-    # 🔥🔥🔥 100% 满血还原原版 Prompt，包含所有引导语 🔥🔥🔥
-    text_prompt = f"""
+    text_prompt = f”””
     【角色设定】
-    你是 Angel 的首席内容参谋。请基于【Angel 独家爆款方法论】对视频进行全维度拆解。
-    
-    【Angel 档案】
+    你是 {PERSONA_NAME} 的首席内容参谋。请基于【{PERSONA_NAME} 独家爆款方法论】对视频进行全维度拆解。
+
+    【{PERSONA_NAME} 档案】
     {MY_PERSONA}
 
     【竞品数据输入】
@@ -485,42 +483,42 @@ def analyze_content(meta, transcript, cover_base64=None, log=None):
     5. 数据洞察：{stats_hint}
     6. 热评 Top5：{meta.get('top_comments', '无')}
     7. 逐字稿：{transcript}
-    
+
     【任务一：封面视觉诊断 (Visual Hook)】
     (请结合传入的封面图片进行分析，若无图片则根据标题推测)
     1. 构图元素：是人像大头？还是场景+人？有无特殊道具？
     2. 花字设计：字体多大？颜色对比度如何？关键词是什么？
     3. 点击诱因：这张图为什么让人想点？(美感/猎奇/焦虑/干货感?)
-    
-    【任务二：Angel 的 7 步战术拆解 (基础内功)】
+
+    【任务二：{PERSONA_NAME} 的 7 步战术拆解 (基础内功)】
     1. 前3秒 Hook：是反常？直接给结果？还是先戳痛点？
-       👉 必须输出："这个视频前三秒靠 [具体手段] 留下人"
+       👉 必须输出：”这个视频前三秒靠 [具体手段] 留下人”
     2. 钩子金句：只记一句，记哪句？(通常是第一句或字幕最大那句)
     3. 结构类型：是 (问题-共鸣-经历-观点) 还是 (故事-翻转-结论)？
     4. 情绪走向 (0-10分)：一开始几分？中间有无起伏？结尾是安慰/狠话/清醒？
     5. 镜头形式：最省力的特征 (站/坐/对镜/Vlog/旁白)。
     6. 评论吵什么：重复出现的问题或情绪最激烈的点。
     7. 为什么是他拍：换个人成立吗？(强人设 vs 强模板)
-    
+
     【任务三：运营总监级 战略分析 (高阶心法)】
     1. 热评深挖：把评论当做用户访谈。是情绪共振？需求外溢(要后续)？还是价值观争议？
-    2. 外部信号：收藏多还是点赞多？是被"用"还是被"认同"？有无二刷/转发信号？
+    2. 外部信号：收藏多还是点赞多？是被”用”还是被”认同”？有无二刷/转发信号？
     3. 爆款打分 (总分100)：
        - 停留力 (20)：前3秒是否下意识停住？
        - 互动密度 (25)：评论区是否像日记/活人？
        - 传播倾向 (20)：有理由转给别人吗？
        - 平台态度 (20)：数据是否反常？
-       - 可复制性 (15)：Angel 能不能拍？
+       - 可复制性 (15)：{PERSONA_NAME} 能不能拍？
     4. 评级与行动：
-       - 🟢 A级(>80)：必拆，出通用公式，反推3个Angel选题。
+       - 🟢 A级(>80)：必拆，出通用公式，反推3个{PERSONA_NAME}选题。
        - 🟡 B级(60-79)：参考部分，只学亮点。
-       - 🔴 C级(<60)：判定为“无效爆款”或“纯运气”，但必须在【亮点总结】和【结构】中说明它为什么烂，**不可留白**。
-       
+       - 🔴 C级(<60)：判定为”无效爆款”或”纯运气”，但必须在【亮点总结】和【结构】中说明它为什么烂，**不可留白**。
+
     【任务四：总结归档】
     1. 亮点总结：精简3点最值得学习的地方。
     2. 赛道标签 & 人群标签 (如：25-30岁焦虑宝妈/精致白领)。
     3. 抄作业：能抄的逻辑 vs 我不能抄的特质。
-    4. 选题反推：基于 Angel 人设反推 3 个新选题。
+    4. 选题反推：基于 {PERSONA_NAME} 人设反推 3 个新选题。
 
     【输出格式要求】
     1. **只输出纯 JSON**，不要包含 "```json" 等标记。
@@ -650,7 +648,99 @@ def analyze_content(meta, transcript, cover_base64=None, log=None):
             return local, "local_fallback", "heuristic-v1"
         return None, None, None
 
-def run_single_analysis(meta_path):
+def _srt_to_transcript(srt_path):
+    """Convert SRT file to timestamped transcript text."""
+    try:
+        import pysrt
+        subs = pysrt.open(srt_path, encoding='utf-8')
+        lines = []
+        for sub in subs:
+            mm = sub.start.minutes + sub.start.hours * 60
+            ss = sub.start.seconds
+            lines.append(f"[{mm:02d}:{ss:02d}] {sub.text.strip()}")
+        return "\n".join(lines)
+    except Exception:
+        # Fallback: parse SRT manually
+        lines = []
+        try:
+            with open(srt_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            import re as _re
+            blocks = _re.split(r'\n\n+', content.strip())
+            for block in blocks:
+                block_lines = block.strip().split('\n')
+                if len(block_lines) >= 3:
+                    text = ' '.join(block_lines[2:]).strip()
+                    if text:
+                        lines.append(text)
+        except Exception:
+            pass
+        return "\n".join(lines)
+
+
+def extract_transcript(video_path, log=None):
+    """
+    Unified transcript extraction: FunASR smart extraction → Whisper fallback.
+    Returns timestamped transcript string, or None on failure.
+    """
+    import tempfile
+
+    srt_path = video_path.rsplit(".", 1)[0] + "_transcript.srt"
+
+    # Strategy 1: Use smart_subtitle_extraction (FunASR + RapidOCR)
+    try:
+        scripts_dir = os.path.join(PROJECT_ROOT, "scripts")
+        sys.path.insert(0, scripts_dir)
+        from extract_subtitle_funasr import smart_subtitle_extraction
+        sys.path.pop(0)
+
+        if log:
+            log("🎯 使用智能字幕提取 (FunASR + RapidOCR)...")
+        success, mode = smart_subtitle_extraction(video_path, srt_path)
+        if success and os.path.exists(srt_path):
+            transcript = _srt_to_transcript(srt_path)
+            if transcript:
+                if log:
+                    log(f"✅ [Audio] 智能字幕提取完成 (模式: {mode})")
+                return transcript
+    except ImportError:
+        if log:
+            log("⚠️ FunASR/RapidOCR 未安装，尝试 Whisper 兜底...")
+    except Exception as e:
+        if log:
+            log(f"⚠️ 智能字幕提取异常 ({e})，尝试 Whisper 兜底...")
+
+    # Strategy 2: Whisper fallback
+    try:
+        import whisper
+        whisper_model = os.getenv("WHISPER_MODEL", "medium")
+        if log:
+            log(f"🎤 使用 Whisper ({whisper_model}) 进行语音转录...")
+        model = whisper.load_model(whisper_model)
+        result = model.transcribe(
+            video_path,
+            fp16=False,
+            language='zh',
+            initial_prompt="以下是简体中文的视频文案。"
+        )
+        transcript = "\n".join(
+            [f"[{int(s['start'])//60:02d}:{int(s['start'])%60:02d}] {s['text']}"
+             for s in result.get('segments', [])]
+        )
+        if log:
+            log(f"✅ [Audio] Whisper 听写完成，段落数: {len(result.get('segments', []))}")
+        return transcript
+    except ImportError:
+        if log:
+            log("❌ Whisper 也未安装。请安装 funasr 或 openai-whisper。")
+    except Exception as e:
+        if log:
+            log(f"❌ Whisper 听写失败: {e}")
+
+    return None
+
+
+def run_single_analysis(meta_path, cleanup=False):
     print(f"🚀 正在分析: {meta_path}")
     with open(meta_path, 'r', encoding='utf-8') as f:
         meta = json.load(f)
@@ -686,22 +776,10 @@ def run_single_analysis(meta_path):
     else:
         log("⚠️ meta 中无 cover_url，跳过封面处理。")
 
-    log("👂 [Audio] 开始听写...")
-    whisper_model = os.getenv("WHISPER_MODEL", "medium")
-    try:
-        model = whisper.load_model(whisper_model)
-        result = model.transcribe(
-            meta['local_video_path'],
-            fp16=False,
-            language='zh',
-            initial_prompt="以下是简体中文的视频文案。"
-        )
-        transcript = "\n".join(
-            [f"[{int(s['start'])//60:02d}:{int(s['start'])%60:02d}] {s['text']}" for s in result.get('segments', [])]
-        )
-        log(f"✅ [Audio] 听写完成，段落数: {len(result.get('segments', []))}")
-    except Exception as e:
-        log(f"❌ [Audio] 听写失败: {e}\n{traceback.format_exc()}")
+    log("👂 [Audio] 开始智能字幕提取...")
+    transcript = extract_transcript(meta['local_video_path'], log=log)
+    if not transcript:
+        log("❌ [Audio] 字幕提取完全失败，无法继续分析。")
         return
     
     images, duration = extract_visuals(meta['local_video_path'], log=log)
@@ -732,18 +810,49 @@ def run_single_analysis(meta_path):
     except Exception as e:
         log(f"❌ 保存失败: {e}\n{traceback.format_exc()}")
 
+    # Cleanup: delete video file after successful analysis
+    if cleanup and meta.get('local_video_path'):
+        video_file = meta['local_video_path']
+        if os.path.exists(video_file):
+            try:
+                os.remove(video_file)
+                log(f"🗑️ 已清理视频文件: {video_file}")
+            except Exception as e:
+                log(f"⚠️ 视频文件清理失败: {e}")
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Step 2: 视频文案 AI 分析（支持多 Provider 链式调用）"
+    )
+    parser.add_argument(
+        "--file", "-f", type=str, default=None,
+        help="分析指定的 meta JSON 文件（默认: 分析 workspace_data/ 下所有 meta_*.json）"
+    )
+    parser.add_argument(
+        "--cleanup", action="store_true",
+        help="分析完成后自动删除视频文件以释放磁盘空间"
+    )
+    args = parser.parse_args()
+
     print("🚀 启动 [Step 2: 满血本地分析] 模式...")
+    check_env_security()
+
     provider = os.getenv("ANALYSIS_PROVIDER", "anthropic").strip().lower()
     chain = build_provider_chain()
     print(f"🧠 当前 provider 配置: ANALYSIS_PROVIDER={provider}, chain={chain}")
+    print(f"👤 当前 Persona: {PERSONA_NAME}")
     cfgs = get_provider_configs()
     for name in chain:
         cfg = cfgs.get(name, {})
         key_ok = bool(cfg.get("api_key"))
         print(f"   - {name}: model={cfg.get('model')} key={'OK' if key_ok else 'MISSING'}")
-    meta_files = glob.glob(os.path.join(WORK_DIR, "meta_*.json"))
-    
+
+    if args.file:
+        meta_files = [args.file]
+    else:
+        meta_files = glob.glob(os.path.join(WORK_DIR, "meta_*.json"))
+
     if not meta_files:
         print("❌ 未找到数据。请先运行 Step 3 下载！")
         sys.exit()
@@ -752,7 +861,7 @@ if __name__ == "__main__":
     for i, json_path in enumerate(meta_files):
         print(f"\n🎬 [任务 {i+1}/{len(meta_files)}]")
         try:
-            run_single_analysis(json_path)
+            run_single_analysis(json_path, cleanup=args.cleanup)
         except Exception as e:
             print(f"❌ 任务 {i+1} 异常: {e}")
         time.sleep(5)
